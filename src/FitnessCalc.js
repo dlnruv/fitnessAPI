@@ -84,8 +84,7 @@ class FitnessCalc extends Component {
                 {responseData && (
                     <div>
                         <h2>Calorie Requirements:</h2>
-                        <p>Basal Metabolic Rate (BMR): {responseData.bmr}</p>
-                        <p>Caloric Maintenance: {responseData.maintenance}</p>
+                        <p>Caloric Maintenance: {responseData.data.}</p>
                     </div>
                 )}
 
