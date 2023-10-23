@@ -61,7 +61,6 @@ class FitnessCalc extends Component {
             }
 
             if (calorieRange) {
-                alert("Mealtype: " + mealType + " calorieRange: " + calorieRange)
                 const recipeOptions = {
                     method: 'GET',
                     url: 'https://edamam-recipe-search.p.rapidapi.com/api/recipes/v2',
@@ -181,6 +180,8 @@ class FitnessCalc extends Component {
                             <option value="Extreme weight gain">Extreme Weight Gain</option>
                         </select>
                     </label>
+                    <button type="submit">Get Info</button>
+                    <p></p>
                     <button type="button" onClick={() => this.handleMealTypeChange('breakfast')}>
                         Get Breakfast Recipes
                     </button>
@@ -190,7 +191,6 @@ class FitnessCalc extends Component {
                     <button type="button" onClick={() => this.handleMealTypeChange('dinner')}>
                         Get Dinner Recipes
                     </button>
-                    <button type="submit">Get Info</button>
                 </form>
 
                 {responseData && (
@@ -199,10 +199,10 @@ class FitnessCalc extends Component {
                         <p>Caloric Maintenance: {calorieMaintenance}</p>
                     </div>
                 )}
-
                 {selectedMealType && recipeData[selectedMealType].length > 0 && (
                     <div>
-                        <h2>{selectedMealType.charAt(0).toUpperCase() + selectedMealType.slice(1)} Recipes:</h2>
+                        <h2>{selectedMealType.charAt(0).toUpperCase() + selectedMealType.slice(1)} Recipes: </h2>
+                        <h2>Calorie Range: {this.getCalorieRange(selectedMealType)} </h2>
                         <ul>
                             {recipeData[selectedMealType].map((recipe, index) => (
                                 <li key={index}>
@@ -243,6 +243,23 @@ class FitnessCalc extends Component {
             </div>
         );
     }
+    getCalorieRange(mealType) {
+        const calorieMaintenance = this.getCalorieMaintenance();
+        if (calorieMaintenance) {
+            switch (mealType) {
+                case 'breakfast':
+                    return `${Math.round(calorieMaintenance * 0.20)} - ${Math.round(calorieMaintenance * 0.25)} calories`;
+                case 'lunch':
+                    return `${Math.round(calorieMaintenance * 0.30)} - ${Math.round(calorieMaintenance * 0.35)} calories`;
+                case 'dinner':
+                    return `${Math.round(calorieMaintenance * 0.30)} - ${Math.round(calorieMaintenance * 0.35)} calories`;
+                default:
+                    return '';
+            }
+        }
+        return '';
+    }
+
 }
 
 export default FitnessCalc;
