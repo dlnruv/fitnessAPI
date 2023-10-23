@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import axios from 'axios';
+import Modal from 'react-modal';
 
 class FitnessCalc extends Component {
     state = {
@@ -16,6 +17,16 @@ class FitnessCalc extends Component {
             dinner: [],
         },
         error: null,
+        selectedMealType: null,
+        selectedRecipe: null,
+    };
+
+    openRecipeModal = (recipe) => {
+        this.setState({ selectedRecipe: recipe });
+    };
+
+    closeRecipeModal = () => {
+        this.setState({ selectedRecipe: null });
     };
 
     handleInputChange = (e) => {
@@ -37,30 +48,30 @@ class FitnessCalc extends Component {
             let calorieRange = '';
             switch (mealType) {
                 case 'breakfast':
-                    calorieRange = `${calorieMaintenance - 200}-${calorieMaintenance - 100}`;
+                    calorieRange = `${calorieMaintenance * 0.20}-${calorieMaintenance * 0.25}`;
                     break;
                 case 'lunch':
-                    calorieRange = `${calorieMaintenance - 100}-${calorieMaintenance + 100}`;
+                    calorieRange = `${calorieMaintenance * 0.30}-${calorieMaintenance * 0.35}`;
                     break;
                 case 'dinner':
-                    calorieRange = `${calorieMaintenance + 100}-${calorieMaintenance + 200}`;
+                    calorieRange = `${calorieMaintenance * 0.30}-${calorieMaintenance * 0.35}`;
                     break;
                 default:
                     break;
             }
 
             if (calorieRange) {
+                alert("Mealtype: " + mealType + " calorieRange: " + calorieRange)
                 const recipeOptions = {
                     method: 'GET',
                     url: 'https://edamam-recipe-search.p.rapidapi.com/api/recipes/v2',
                     params: {
                         type: 'public',
-                        co2EmissionsClass: 'A+',
                         'field[0]': 'uri',
-                        beta: 'true',
                         random: 'true',
                         'imageSize[0]': 'LARGE',
                         calories: calorieRange,
+                        'mealType[0]': mealType,
                         'diet[0]': 'balanced',
                     },
                     headers: {
@@ -73,15 +84,14 @@ class FitnessCalc extends Component {
                 try {
                     const recipeResponse = await axios.request(recipeOptions);
                     const updatedRecipeData = { ...this.state.recipeData, [mealType]: recipeResponse.data.hits };
-                    this.setState({ recipeData: updatedRecipeData });
+                    this.setState({ recipeData: updatedRecipeData, selectedMealType: mealType });
                 } catch (error) {
                     console.error(error);
-                    this.setState({ error: 'An error occurred while fetching recipes.', recipeData: null });
+                    this.setState({ error: 'An error occurred while fetching recipes.', recipeData: null, selectedMealType: null });
                 }
             }
         }
     };
-
     getCalorieMaintenance() {
         const { responseData, selectedGoal } = this.state;
         if (responseData) {
@@ -108,7 +118,7 @@ class FitnessCalc extends Component {
                 activitylevel: this.state.activityLevel,
             },
             headers: {
-                'X-RapidAPI-Key': '28622ab15emsh37de7c04fb42d0bp134858jsnbee14dcb0847', // Replace with your API key
+                'X-RapidAPI-Key': '28622ab15emsh37de7c04fb42d0bp134858jsnbee14dcb0847',
                 'X-RapidAPI-Host': 'fitness-calculator.p.rapidapi.com',
             },
         };
@@ -123,9 +133,8 @@ class FitnessCalc extends Component {
     }
 
     render() {
-        const { responseData, error, recipeData, selectedMealType } = this.state; // Corrected the variable name
+        const { responseData, error, recipeData, selectedMealType ,selectedRecipe} = this.state;
         const calorieMaintenance = this.getCalorieMaintenance();
-
         return (
             <div>
                 <h1>Fitness Calculator</h1>
@@ -191,34 +200,51 @@ class FitnessCalc extends Component {
                     </div>
                 )}
 
-                {recipeData[selectedMealType] && recipeData[selectedMealType].length > 0 && (
+                {selectedMealType && recipeData[selectedMealType].length > 0 && (
                     <div>
-                        <h2>{selectedMealType === 'breakfast' ? 'Breakfast Recipes' : selectedMealType === 'lunch' ? 'Lunch Recipes' : 'Dinner Recipes'}</h2>
-                        {recipeData[selectedMealType].slice(0, 5).map((recipe, index) => (
-                            <div key={index}>
-                                <h3>{recipe.recipe.label}</h3>
-                                <img src={recipe.recipe.image} alt={recipe.recipe.label} />
-                                <p>Yield: {recipe.recipe.yield}</p>
-                                <p>Diet Labels: {recipe.recipe.dietLabels.join(', ')}</p>
-                                <p>Health Labels: {recipe.recipe.healthLabels.join(', ')}</p>
-                                <p>Ingredients:</p>
-                                <ul>
-                                    {recipe.recipe.ingredientLines.map((ingredient, i) => (
-                                        <li key={i}>{ingredient}</li>
-                                    ))}
-                                </ul>
-                                <p>
-                                    <a href={recipe.recipe.url} target="_blank" rel="noopener noreferrer">
-                                        See full recipe
+                        <h2>{selectedMealType.charAt(0).toUpperCase() + selectedMealType.slice(1)} Recipes:</h2>
+                        <ul>
+                            {recipeData[selectedMealType].map((recipe, index) => (
+                                <li key={index}>
+                                    <a
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={() => this.openRecipeModal(recipe)}
+                                    >
+                                        {recipe.recipe.label}
                                     </a>
-                                </p>
-                            </div>
-                        ))}
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 )}
+
+                <Modal
+                    isOpen={selectedRecipe !== null}
+                    onRequestClose={this.closeRecipeModal}
+                    contentLabel="Recipe Modal"
+                >
+                    {selectedRecipe && (
+                        <div>
+                            <h2>{selectedRecipe.recipe.label}</h2>
+                            <img src={selectedRecipe.recipe.image} alt={selectedRecipe.recipe.label} />
+                            <h3>Nutritional Information:</h3>
+                            <ul>
+                                <li>Calories: {Math.round(selectedRecipe.recipe.totalNutrients.ENERC_KCAL.quantity)} {selectedRecipe.recipe.totalNutrients.ENERC_KCAL.unit}</li>
+                                <li>Fat: {Math.round(selectedRecipe.recipe.totalNutrients.FAT.quantity)} {selectedRecipe.recipe.totalNutrients.FAT.unit}</li>
+                                <li>Carbs: {Math.round(selectedRecipe.recipe.totalNutrients.CHOCDF.quantity)} {selectedRecipe.recipe.totalNutrients.CHOCDF.unit}</li>
+                                <li>Protein: {Math.round(selectedRecipe.recipe.totalNutrients.PROCNT.quantity)} {selectedRecipe.recipe.totalNutrients.PROCNT.unit}</li>
+                            </ul>
+                            <button onClick={this.closeRecipeModal}>Close</button>
+                            <a href={selectedRecipe.recipe.url} target="_blank">Show Recipe</a>
+                        </div>
+                    )}
+                </Modal>
             </div>
         );
     }
 }
 
 export default FitnessCalc;
+
+
